@@ -1,0 +1,49 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 深色背景渐变 -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E293B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0B0E14;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="needleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22D3EE;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 外圈背景 -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGrad)"/>
+
+  <!-- 外环 - 白色 -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#F8FAFC" stroke-width="4" opacity="0.9"/>
+
+  <!-- 指南针刻度 -->
+  <!-- 主方向 (N, E, S, W) -->
+  <line x1="256" y1="56" x2="256" y2="80" stroke="#22D3EE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="456" y1="256" x2="432" y2="256" stroke="#22D3EE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="256" y1="456" x2="256" y2="432" stroke="#22D3EE" stroke-width="4" stroke-linecap="round"/>
+  <line x1="56" y1="256" x2="80" y2="256" stroke="#22D3EE" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- 次要方向刻度 -->
+  <line x1="356" y1="100" x2="342" y2="114" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="412" y1="156" x2="398" y2="170" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="412" y1="356" x2="398" y2="342" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="356" y1="412" x2="342" y2="398" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="156" y1="412" x2="170" y2="398" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="100" y1="356" x2="114" y2="342" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="100" y1="156" x2="114" y2="170" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+  <line x1="156" y1="100" x2="170" y2="114" stroke="#F8FAFC" stroke-width="2" opacity="0.6" stroke-linecap="round"/>
+
+  <!-- 指南针指针 - 北方(电光蓝) -->
+  <path d="M 256 256 L 236 176 L 256 140 L 276 176 Z" fill="url(#needleGrad)" opacity="0.95"/>
+
+  <!-- 指南针指针 - 南方(暗灰) -->
+  <path d="M 256 256 L 276 336 L 256 372 L 236 336 Z" fill="#475569" opacity="0.7"/>
+
+  <!-- 中心圆环 -->
+  <circle cx="256" cy="256" r="32" fill="none" stroke="#22D3EE" stroke-width="3"/>
+  <circle cx="256" cy="256" r="16" fill="#22D3EE"/>
+
+  <!-- 微妙光晕效果 -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.2"/>
+</svg>

@@ -9,7 +9,12 @@
     "start": "electron . --expose-gc",
     "clean": "rimraf dist build"
   },
-  "keywords": ["privacy", "browser", "electron", "incognito"],
+  "keywords": [
+    "privacy",
+    "browser",
+    "electron",
+    "incognito"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -18,6 +23,7 @@
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
     "rimraf": "^5.0.7",
+    "sharp": "^0.35.3",
     "typescript": "^5.4.5"
   },
   "build": {
@@ -31,16 +37,25 @@
       "package.json"
     ],
     "win": {
-      "target": ["nsis", "portable"],
-      "icon": "assets/icon.ico"
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.png"
     },
     "mac": {
-      "target": ["dmg", "zip"],
-      "icon": "assets/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.png",
       "category": "public.app-category.utilities"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "icon": "assets/icon.png",
       "category": "Network"
     }
