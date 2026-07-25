@@ -58,6 +58,8 @@ async function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
+    // 自动打开开发者工具进行调试
+    mainWindow?.webContents.openDevTools();
   });
 
   mainWindow.on('closed', () => {
