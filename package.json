@@ -1,0 +1,48 @@
+{
+  "name": "pc-privacy-browser",
+  "version": "1.0.0",
+  "description": "极致隐私 PC 浏览器 - 无痕浏览，每次启动全新身份",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"tsc -w\" \"electron .\"",
+    "build": "tsc && electron-builder",
+    "start": "electron .",
+    "clean": "rimraf dist build"
+  },
+  "keywords": ["privacy", "browser", "electron", "incognito"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "rimraf": "^5.0.7",
+    "typescript": "^5.4.5"
+  },
+  "build": {
+    "appId": "com.privacy.browser",
+    "productName": "隐私浏览器",
+    "directories": {
+      "output": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Network"
+    }
+  }
+}
