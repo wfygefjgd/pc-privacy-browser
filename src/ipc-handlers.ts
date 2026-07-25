@@ -313,9 +313,176 @@ function getAntiFingerprint(identity?: any): string {
     });
   } catch(e){}
 
-  // 时区伪装（可选，设置为 UTC）
+  // 字体指纹防护
   try {
-    Date.prototype.getTimezoneOffset = () => 0;
+    Object.defineProperty(document, 'fonts', {
+      get: () => ({
+        check: () => false,
+        ready: Promise.resolve(new Set()),
+        size: 0,
+        add: () => {},
+        clear: () => {},
+        delete: () => false,
+        entries: () => [][Symbol.iterator](),
+        forEach: () => {},
+        has: () => false,
+        keys: () => [][Symbol.iterator](),
+        values: () => [][Symbol.iterator]()
+      })
+    });
+  } catch(e){}
+
+  // 音频指纹防护
+  try {
+    const origGetChannelData = AudioBuffer.prototype.getChannelData;
+    AudioBuffer.prototype.getChannelData = function(channel) {
+      const data = origGetChannelData.call(this, channel);
+      for (let i = 0; i < data.length; i += 100) {
+        data[i] += Math.random() * 0.0001 - 0.00005;
+      }
+      return data;
+    };
+
+    const OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (OrigAudioContext) {
+      const origCreateOscillator = OrigAudioContext.prototype.createOscillator;
+      OrigAudioContext.prototype.createOscillator = function() {
+        const osc = origCreateOscillator.call(this);
+        const origStart = osc.start;
+        osc.start = function(when) {
+          osc.frequency.value += Math.random() * 0.001 - 0.0005;
+          return origStart.call(this, when);
+        };
+        return osc;
+      };
+    }
+  } catch(e){}
+
+  // 媒体设备枚举防护
+  try {
+    if (navigator.mediaDevices) {
+      navigator.mediaDevices.enumerateDevices = async () => [];
+      navigator.mediaDevices.getSupportedConstraints = () => ({});
+    }
+  } catch(e){}
+
+  // 网络信息 API 防护
+  try {
+    delete navigator.connection;
+    delete navigator.mozConnection;
+    delete navigator.webkitConnection;
+  } catch(e){}
+
+  // 插件检测防护
+  try {
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => []
+    });
+    Object.defineProperty(navigator, 'mimeTypes', {
+      get: () => []
+    });
+  } catch(e){}
+
+  // Clipboard 读取限制
+  try {
+    if (navigator.clipboard) {
+      navigator.clipboard.read = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+      navigator.clipboard.readText = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
+    }
+  } catch(e){}
+
+  // Geolocation 阻断
+  try {
+    navigator.geolocation.getCurrentPosition = (success, error) => {
+      if (error) error({ code: 1, message: 'User denied Geolocation' });
+    };
+    navigator.geolocation.watchPosition = (success, error) => {
+      if (error) error({ code: 1, message: 'User denied Geolocation' });
+      return 0;
+    };
+  } catch(e){}
+
+  // 键盘布局指纹防护
+  try {
+    if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
+      navigator.keyboard.getLayoutMap = () => Promise.resolve(new Map());
+    }
+  } catch(e){}
+
+  // 性能 API 限制
+  try {
+    const origNow = performance.now;
+    performance.now = function() {
+      return Math.floor(origNow.call(this) / 100) * 100;
+    };
+    performance.memory = undefined;
+  } catch(e){}
+
+  // CSS 特性检测防护
+  try {
+    const origSupports = CSS.supports;
+    CSS.supports = function(property, value) {
+      const standard = [
+        'display', 'color', 'background', 'font-size', 'width', 'height',
+        'margin', 'padding', 'border', 'position', 'flex', 'grid'
+      ];
+      if (arguments.length === 1) {
+        return standard.some(p => arguments[0].includes(p));
+      }
+      return standard.includes(property);
+    };
+  } catch(e){}
+
+  // 传感器 API 阻断
+  try {
+    delete window.DeviceMotionEvent;
+    delete window.DeviceOrientationEvent;
+    delete window.Accelerometer;
+    delete window.Gyroscope;
+    delete window.LinearAccelerationSensor;
+    delete window.Magnetometer;
+    delete window.AbsoluteOrientationSensor;
+    delete window.RelativeOrientationSensor;
+  } catch(e){}
+
+  // Notification API 限制
+  try {
+    if (window.Notification) {
+      Notification.requestPermission = () => Promise.resolve('denied');
+      Object.defineProperty(Notification, 'permission', {
+        get: () => 'denied'
+      });
+    }
+  } catch(e){}
+
+  // MIDI API 阻断
+  try {
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess = () => Promise.reject(new DOMException('Permission denied', 'SecurityError'));
+    }
+  } catch(e){}
+
+  // USB API 阻断
+  try {
+    if (navigator.usb) {
+      navigator.usb.getDevices = () => Promise.resolve([]);
+      navigator.usb.requestDevice = () => Promise.reject(new DOMException('Permission denied', 'NotFoundError'));
+    }
+  } catch(e){}
+
+  // Bluetooth API 阻断
+  try {
+    if (navigator.bluetooth) {
+      navigator.bluetooth.getAvailability = () => Promise.resolve(false);
+      navigator.bluetooth.requestDevice = () => Promise.reject(new DOMException('Permission denied', 'NotFoundError'));
+    }
+  } catch(e){}
+
+  // Presentation API 阻断
+  try {
+    if (navigator.presentation) {
+      navigator.presentation.defaultRequest = null;
+    }
   } catch(e){}
 })();
   `;

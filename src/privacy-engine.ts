@@ -86,6 +86,17 @@ export class PrivacyEngine {
       callback({ responseHeaders: headers });
     });
 
+    // HTTP Referer 防护
+    ses.webRequest.onBeforeSendHeaders((details, callback) => {
+      const headers = details.requestHeaders;
+
+      // 移除 Referer 头
+      delete headers['Referer'];
+      delete headers['referer'];
+
+      callback({ requestHeaders: headers });
+    });
+
     // 随机化 User-Agent
     const userAgent = this.generateRandomUserAgent();
     ses.setUserAgent(userAgent);
