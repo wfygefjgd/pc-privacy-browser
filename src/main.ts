@@ -2,7 +2,7 @@ import { app, BrowserWindow, session, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { PrivacyEngine } from './privacy-engine';
-import { setupIPCHandlers } from './ipc-handlers';
+import { setupIPCHandlers, TabManager } from './ipc-handlers';
 
 // 禁用硬件加速以避免 GPU 指纹
 app.disableHardwareAcceleration();
@@ -18,6 +18,7 @@ app.commandLine.appendSwitch('disable-component-update');
 app.commandLine.appendSwitch('disable-domain-reliability');
 
 let mainWindow: BrowserWindow | null = null;
+const tabManager = new TabManager();
 
 async function createWindow() {
   // 创建隐私会话（完全隔离）
@@ -53,8 +54,11 @@ async function createWindow() {
     mainWindow = null;
   });
 
+  // 初始化第一个标签
+  tabManager.createTab('about:blank');
+
   // 设置 IPC 处理器
-  setupIPCHandlers(mainWindow, privacySession);
+  setupIPCHandlers(mainWindow, privacySession, tabManager);
 
   // 阻止新窗口打开（除非明确允许）
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

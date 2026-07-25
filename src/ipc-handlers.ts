@@ -1,13 +1,126 @@
 import { BrowserWindow, Session, ipcMain } from 'electron';
 import { PrivacyEngine } from './privacy-engine';
 
-export function setupIPCHandlers(window: BrowserWindow, session: Session) {
+export interface Tab {
+  id: string;
+  title: string;
+  url: string;
+  favicon?: string;
+  isLoading: boolean;
+}
+
+export class TabManager {
+  private tabs: Map<string, Tab> = new Map();
+  private activeTabId: string | null = null;
+
+  createTab(url: string = 'about:blank'): Tab {
+    const id = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const tab: Tab = {
+      id,
+      title: '新标签',
+      url,
+      isLoading: false,
+    };
+    this.tabs.set(id, tab);
+    this.activeTabId = id;
+    return tab;
+  }
+
+  getTab(id: string): Tab | undefined {
+    return this.tabs.get(id);
+  }
+
+  getAllTabs(): Tab[] {
+    return Array.from(this.tabs.values());
+  }
+
+  getActiveTab(): Tab | null {
+    if (!this.activeTabId) return null;
+    return this.tabs.get(this.activeTabId) || null;
+  }
+
+  setActiveTab(id: string): boolean {
+    if (this.tabs.has(id)) {
+      this.activeTabId = id;
+      return true;
+    }
+    return false;
+  }
+
+  updateTab(id: string, updates: Partial<Tab>): void {
+    const tab = this.tabs.get(id);
+    if (tab) {
+      Object.assign(tab, updates);
+    }
+  }
+
+  closeTab(id: string): boolean {
+    if (this.tabs.size <= 1) return false;
+
+    const deleted = this.tabs.delete(id);
+    if (deleted && this.activeTabId === id) {
+      const remainingTabs = Array.from(this.tabs.keys());
+      this.activeTabId = remainingTabs[0] || null;
+    }
+    return deleted;
+  }
+
+  getTabCount(): number {
+    return this.tabs.size;
+  }
+}
+
+export function setupIPCHandlers(window: BrowserWindow, session: Session, tabManager: TabManager) {
+  // 创建新标签
+  ipcMain.handle('tab:create', async (event, url?: string) => {
+    const tab = tabManager.createTab(url);
+    return {
+      tabs: tabManager.getAllTabs(),
+      activeTabId: tab.id,
+    };
+  });
+
+  // 关闭标签
+  ipcMain.handle('tab:close', async (event, tabId: string) => {
+    const success = tabManager.closeTab(tabId);
+    return {
+      success,
+      tabs: tabManager.getAllTabs(),
+      activeTabId: tabManager.getActiveTab()?.id || null,
+    };
+  });
+
+  // 切换标签
+  ipcMain.handle('tab:switch', async (event, tabId: string) => {
+    const success = tabManager.setActiveTab(tabId);
+    return {
+      success,
+      activeTabId: tabId,
+    };
+  });
+
+  // 获取所有标签
+  ipcMain.handle('tab:getAll', async () => {
+    return {
+      tabs: tabManager.getAllTabs(),
+      activeTabId: tabManager.getActiveTab()?.id || null,
+    };
+  });
+
+  // 更新标签信息
+  ipcMain.handle('tab:update', async (event, tabId: string, updates: Partial<Tab>) => {
+    tabManager.updateTab(tabId, updates);
+    return { success: true };
+  });
+
   // 导航到 URL
-  ipcMain.handle('navigate', async (event, url: string) => {
+  ipcMain.handle('navigate', async (event, url: string, tabId?: string) => {
+    const targetTab = tabId ? tabManager.getTab(tabId) : tabManager.getActiveTab();
+    if (!targetTab) return { success: false, error: 'No active tab' };
+
     try {
-      const view = window.webContents;
-      await view.loadURL(url);
-      return { success: true };
+      tabManager.updateTab(targetTab.id, { url, isLoading: true });
+      return { success: true, tabId: targetTab.id };
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -15,26 +128,42 @@ export function setupIPCHandlers(window: BrowserWindow, session: Session) {
 
   // 后退
   ipcMain.handle('go-back', async () => {
-    if (window.webContents.canGoBack()) {
-      window.webContents.goBack();
-    }
+    window.webContents.executeJavaScript(`
+      const activeWebview = document.querySelector('webview.active');
+      if (activeWebview && activeWebview.canGoBack()) {
+        activeWebview.goBack();
+      }
+    `);
   });
 
   // 前进
   ipcMain.handle('go-forward', async () => {
-    if (window.webContents.canGoForward()) {
-      window.webContents.goForward();
-    }
+    window.webContents.executeJavaScript(`
+      const activeWebview = document.querySelector('webview.active');
+      if (activeWebview && activeWebview.canGoForward()) {
+        activeWebview.goForward();
+      }
+    `);
   });
 
   // 刷新
   ipcMain.handle('reload', async () => {
-    window.webContents.reload();
+    window.webContents.executeJavaScript(`
+      const activeWebview = document.querySelector('webview.active');
+      if (activeWebview) {
+        activeWebview.reload();
+      }
+    `);
   });
 
   // 停止加载
   ipcMain.handle('stop', async () => {
-    window.webContents.stop();
+    window.webContents.executeJavaScript(`
+      const activeWebview = document.querySelector('webview.active');
+      if (activeWebview) {
+        activeWebview.stop();
+      }
+    `);
   });
 
   // 手动清除并重启
@@ -43,28 +172,19 @@ export function setupIPCHandlers(window: BrowserWindow, session: Session) {
     return { success: true };
   });
 
-  // 获取当前 URL
-  ipcMain.handle('get-url', async () => {
-    return window.webContents.getURL();
-  });
-
-  // 获取标题
-  ipcMain.handle('get-title', async () => {
-    return window.webContents.getTitle();
-  });
-
   // 获取导航状态
   ipcMain.handle('get-nav-state', async () => {
-    return {
-      canGoBack: window.webContents.canGoBack(),
-      canGoForward: window.webContents.canGoForward(),
-      isLoading: window.webContents.isLoading(),
-    };
-  });
-
-  // 注入反指纹脚本
-  window.webContents.on('did-start-navigation', () => {
-    window.webContents.executeJavaScript(getAntiFingerprint());
+    return window.webContents.executeJavaScript(`
+      (function() {
+        const activeWebview = document.querySelector('webview.active');
+        if (!activeWebview) return { canGoBack: false, canGoForward: false, isLoading: false };
+        return {
+          canGoBack: activeWebview.canGoBack(),
+          canGoForward: activeWebview.canGoForward(),
+          isLoading: false
+        };
+      })()
+    `);
   });
 }
 
