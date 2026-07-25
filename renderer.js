@@ -27,6 +27,22 @@ let isLoading = false;
 
 // 初始化：创建第一个标签
 async function init() {
+  console.log('🚀 初始化浏览器...');
+
+  // 等待 electronAPI 准备好
+  let retries = 0;
+  while (!window.electronAPI && retries < 50) {
+    console.log('⏳ 等待 electronAPI...');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    retries++;
+  }
+
+  if (!window.electronAPI) {
+    console.error('❌ electronAPI 未加载！');
+    return;
+  }
+
+  console.log('✅ electronAPI 已准备好');
   await createTab('about:blank');
   await refreshTabs();
   updateNavButtons();

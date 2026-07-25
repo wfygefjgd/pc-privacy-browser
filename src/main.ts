@@ -53,11 +53,11 @@ async function createWindow() {
     backgroundColor: '#0B0E14',
   });
 
+  // 先设置 IPC 处理器（在 loadFile 之前）
+  setupIPCHandlers(mainWindow, privacySession, tabManager);
+
   // 加载主界面
   await mainWindow.loadFile(path.join(__dirname, '../index.html'));
-
-  // 设置 IPC 处理器（必须在 loadFile 之前或之后立即设置）
-  setupIPCHandlers(mainWindow, privacySession, tabManager);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
