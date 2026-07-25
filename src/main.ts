@@ -43,6 +43,7 @@ async function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false,
       preload: path.join(__dirname, 'preload.js'),
+      webviewTag: true, // 启用 webview 标签
       // 性能优化
       enableWebSQL: false,
       spellcheck: false,
