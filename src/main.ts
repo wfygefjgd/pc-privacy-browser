@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { PrivacyEngine } from './privacy-engine';
 import { setupIPCHandlers, TabManager } from './ipc-handlers';
 import { MemoryManager } from './memory-manager';
+import { IdentityGenerator } from './identity-generator';
 
 // 禁用硬件加速以避免 GPU 指纹（但这会影响性能）
 // 在隐私和性能之间权衡：如果需要更好的性能，可以启用硬件加速
@@ -84,6 +85,19 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // 生成随机身份
+  const identity = IdentityGenerator.generateIdentity();
+  (global as any).__browserIdentity = identity;
+
+  console.log('🎭 随机身份已生成:', {
+    平台: identity.platform.name,
+    分辨率: `${identity.screen.width}x${identity.screen.height}`,
+    CPU: `${identity.hardware.cores}核`,
+    内存: `${identity.hardware.memory}GB`,
+    语言: identity.locale.lang,
+    时区: identity.timezone.name,
+  });
+
   // 启动时彻底清除所有数据
   await PrivacyEngine.wipeOnLaunch();
 

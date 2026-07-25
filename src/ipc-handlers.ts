@@ -1,5 +1,6 @@
 import { BrowserWindow, Session, ipcMain } from 'electron';
 import { PrivacyEngine } from './privacy-engine';
+import { IdentityGenerator } from './identity-generator';
 
 export interface Tab {
   id: string;
@@ -188,28 +189,38 @@ export function setupIPCHandlers(window: BrowserWindow, session: Session, tabMan
   });
 }
 
-function getAntiFingerprint(): string {
+function getAntiFingerprint(identity?: any): string {
+  const id = identity || {
+    platform: { name: 'Win32' },
+    screen: { width: 1920, height: 1080 },
+    hardware: { cores: 8, memory: 8 },
+    locale: { lang: 'en-US', langs: ['en-US', 'en'] },
+    timezone: { name: 'UTC', offset: 0 },
+  };
+
   return `
 (function(){
   if (window.__pcPrivacyBrowser) return;
   window.__pcPrivacyBrowser = true;
 
-  // 伪装屏幕分辨率
+  const _identity = ${JSON.stringify(id)};
+
+  // 伪装屏幕分辨率（随机身份）
   try {
-    Object.defineProperty(screen, 'width', { get: () => 1920 });
-    Object.defineProperty(screen, 'height', { get: () => 1080 });
-    Object.defineProperty(screen, 'availWidth', { get: () => 1920 });
-    Object.defineProperty(screen, 'availHeight', { get: () => 1040 });
-    Object.defineProperty(window, 'innerWidth', { get: () => 1920 });
-    Object.defineProperty(window, 'innerHeight', { get: () => 1040 });
-    Object.defineProperty(window, 'outerWidth', { get: () => 1920 });
-    Object.defineProperty(window, 'outerHeight', { get: () => 1040 });
+    Object.defineProperty(screen, 'width', { get: () => _identity.screen.width });
+    Object.defineProperty(screen, 'height', { get: () => _identity.screen.height });
+    Object.defineProperty(screen, 'availWidth', { get: () => _identity.screen.width });
+    Object.defineProperty(screen, 'availHeight', { get: () => _identity.screen.height - 40 });
+    Object.defineProperty(window, 'innerWidth', { get: () => _identity.screen.width });
+    Object.defineProperty(window, 'innerHeight', { get: () => _identity.screen.height - 100 });
+    Object.defineProperty(window, 'outerWidth', { get: () => _identity.screen.width });
+    Object.defineProperty(window, 'outerHeight', { get: () => _identity.screen.height });
     Object.defineProperty(window, 'devicePixelRatio', { get: () => 1 });
   } catch(e){}
 
-  // 伪装平台
+  // 伪装平台（随机身份）
   try {
-    Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+    Object.defineProperty(navigator, 'platform', { get: () => _identity.platform.name });
   } catch(e){}
 
   // 移除触摸点
@@ -217,10 +228,38 @@ function getAntiFingerprint(): string {
     Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
   } catch(e){}
 
-  // 伪装硬件
+  // 伪装硬件（随机身份）
   try {
-    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-    Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+    Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => _identity.hardware.cores });
+    Object.defineProperty(navigator, 'deviceMemory', { get: () => _identity.hardware.memory });
+  } catch(e){}
+
+  // 语言指纹防护（随机身份）
+  try {
+    Object.defineProperty(navigator, 'language', { get: () => _identity.locale.lang });
+    Object.defineProperty(navigator, 'languages', { get: () => _identity.locale.langs });
+  } catch(e){}
+
+  // 时区伪装（随机身份）
+  try {
+    const offset = _identity.timezone.offset;
+    Date.prototype.getTimezoneOffset = function() { return -offset; };
+
+    const origToLocaleString = Date.prototype.toLocaleString;
+    Date.prototype.toLocaleString = function(...args) {
+      return origToLocaleString.call(this, _identity.locale.lang, ...args);
+    };
+
+    try {
+      Object.defineProperty(Intl.DateTimeFormat.prototype, 'resolvedOptions', {
+        value: function() {
+          return {
+            timeZone: _identity.timezone.name,
+            locale: _identity.locale.lang
+          };
+        }
+      });
+    } catch(e){}
   } catch(e){}
 
   // 阻止 Canvas 指纹

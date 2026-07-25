@@ -199,15 +199,15 @@ export class PrivacyEngine {
   }
 
   /**
-   * 生成随机 User-Agent
+   * 生成随机 User-Agent（从身份生成器获取）
    */
   private static generateRandomUserAgent(): string {
-    const chromeVersions = ['122.0.6261.94', '121.0.6167.85', '120.0.6099.109'];
-    const windowsVersions = ['10.0', '11.0'];
+    const { IdentityGenerator } = require('./identity-generator');
+    const identity = IdentityGenerator.generateIdentity();
 
-    const chrome = chromeVersions[Math.floor(Math.random() * chromeVersions.length)];
-    const windows = windowsVersions[Math.floor(Math.random() * windowsVersions.length)];
+    // 保存身份供后续使用
+    (global as any).__browserIdentity = identity;
 
-    return `Mozilla/5.0 (Windows NT ${windows}; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chrome} Safari/537.36`;
+    return identity.userAgent;
   }
 }
