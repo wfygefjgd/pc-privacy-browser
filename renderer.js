@@ -34,6 +34,8 @@ async function init() {
 
 // 创建新标签
 async function createTab(url = 'about:blank') {
+  console.log('📑 创建新标签:', url);
+
   const result = await window.electronAPI?.invoke('tab:create', url);
   if (result) {
     tabs = result.tabs;
@@ -47,10 +49,17 @@ async function createTab(url = 'about:blank') {
     webview.setAttribute('webpreferences', 'contextIsolation=yes,nodeIntegration=no');
     webview.className = 'active';
 
+    console.log('✅ Webview 创建:', {
+      id: webview.id,
+      src: webview.src,
+      partition: webview.getAttribute('partition')
+    });
+
     // 监听 webview 事件
     setupWebviewListeners(webview, result.activeTabId);
 
     contentArea.appendChild(webview);
+    console.log('✅ Webview 已添加到 DOM');
     updateTabCount();
   }
 }
@@ -272,7 +281,12 @@ function updateTabCount() {
 function navigate(url) {
   let targetUrl = url.trim();
 
-  if (!targetUrl) return;
+  console.log('🔍 导航请求:', targetUrl);
+
+  if (!targetUrl) {
+    console.log('❌ URL 为空');
+    return;
+  }
 
   // 如果不是 URL，使用 DuckDuckGo 搜索
   if (!targetUrl.match(/^https?:\/\//)) {
@@ -283,10 +297,17 @@ function navigate(url) {
     }
   }
 
+  console.log('🎯 目标 URL:', targetUrl);
+
   const activeWebview = contentArea.querySelector('webview.active');
+  console.log('🌐 活动 webview:', activeWebview);
+
   if (activeWebview) {
+    console.log('✅ 正在加载 URL...');
     activeWebview.src = targetUrl;
     addressInput.value = targetUrl;
+  } else {
+    console.error('❌ 未找到活动的 webview！');
   }
 }
 
@@ -365,6 +386,7 @@ document.addEventListener('click', (e) => {
   const bookmarkItem = e.target.closest('.bookmark-item');
   if (bookmarkItem) {
     const url = bookmarkItem.getAttribute('data-url');
+    console.log('📚 书签点击:', url);
     if (url) {
       navigate(url);
       closeBookmarksPanel();
