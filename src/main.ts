@@ -56,6 +56,9 @@ async function createWindow() {
   // 加载主界面
   await mainWindow.loadFile(path.join(__dirname, '../index.html'));
 
+  // 设置 IPC 处理器（必须在 loadFile 之前或之后立即设置）
+  setupIPCHandlers(mainWindow, privacySession, tabManager);
+
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
     // 自动打开开发者工具进行调试
@@ -68,9 +71,6 @@ async function createWindow() {
 
   // 初始化第一个标签
   tabManager.createTab('about:blank');
-
-  // 设置 IPC 处理器
-  setupIPCHandlers(mainWindow, privacySession, tabManager);
 
   // 阻止新窗口打开（除非明确允许）
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
