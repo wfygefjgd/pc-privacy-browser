@@ -1,6 +1,6 @@
 {
   "name": "pc-privacy-browser",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "极致隐私 PC 浏览器 - 无痕浏览，每次启动全新身份",
   "main": "dist/main.js",
   "scripts": {
