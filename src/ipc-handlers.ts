@@ -262,10 +262,18 @@ function getAntiFingerprint(identity?: any): string {
     } catch(e){}
   } catch(e){}
 
-  // 阻止 Canvas 指纹
+  // 阻止 Canvas 指纹（但保留基本功能以支持验证码）
   try {
     const origToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    const origGetContext = HTMLCanvasElement.prototype.getContext;
+
+    // 只对大尺寸 canvas 进行指纹防护（小尺寸可能是验证码）
     HTMLCanvasElement.prototype.toDataURL = function() {
+      // 验证码 canvas 通常较小（< 500x500），不拦截
+      if (this.width < 500 && this.height < 500) {
+        return origToDataURL.call(this);
+      }
+      // 大尺寸 canvas 返回空白（防指纹）
       const blank = document.createElement('canvas');
       blank.width = this.width;
       blank.height = this.height;
@@ -274,6 +282,10 @@ function getAntiFingerprint(identity?: any): string {
 
     const origToBlob = HTMLCanvasElement.prototype.toBlob;
     HTMLCanvasElement.prototype.toBlob = function(callback) {
+      // 验证码 canvas 不拦截
+      if (this.width < 500 && this.height < 500) {
+        return origToBlob.call(this, callback);
+      }
       const blank = document.createElement('canvas');
       blank.width = this.width;
       blank.height = this.height;

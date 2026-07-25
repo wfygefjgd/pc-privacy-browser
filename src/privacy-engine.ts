@@ -81,13 +81,27 @@ export class PrivacyEngine {
       callback({ responseHeaders: headers });
     });
 
-    // HTTP Referer 防护
+    // HTTP Referer 防护（保留同源 Referer 以支持验证码）
     ses.webRequest.onBeforeSendHeaders((details, callback) => {
       const headers = details.requestHeaders;
 
-      // 移除 Referer 头
-      delete headers['Referer'];
-      delete headers['referer'];
+      // 只删除跨域 Referer，保留同源（验证码需要）
+      if (headers['Referer'] || headers['referer']) {
+        const referer = headers['Referer'] || headers['referer'];
+        const requestUrl = new URL(details.url);
+        try {
+          const refererUrl = new URL(referer);
+          // 不同域名才删除 Referer
+          if (refererUrl.hostname !== requestUrl.hostname) {
+            delete headers['Referer'];
+            delete headers['referer'];
+          }
+        } catch (e) {
+          // Referer 格式错误，删除
+          delete headers['Referer'];
+          delete headers['referer'];
+        }
+      }
 
       callback({ requestHeaders: headers });
     });
