@@ -61,12 +61,21 @@ async function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
-    // 自动打开开发者工具进行调试
-    mainWindow?.webContents.openDevTools();
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+
+  // F12 打开/关闭开发者工具
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' && input.type === 'keyDown') {
+      if (mainWindow?.webContents.isDevToolsOpened()) {
+        mainWindow?.webContents.closeDevTools();
+      } else {
+        mainWindow?.webContents.openDevTools();
+      }
+    }
   });
 
   // 初始化第一个标签
