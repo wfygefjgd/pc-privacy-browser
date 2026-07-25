@@ -19,17 +19,13 @@ export class PrivacyEngine {
     this.isWiping = true;
 
     try {
-      // 1. 清除所有 session 数据
-      await this.wipeSessions();
-
-      // 2. 清除用户数据目录
-      await this.wipeUserDataDir();
-
-      // 3. 清除剪贴板
-      await this.clearClipboard();
-
-      // 4. 清除 DNS 缓存（通过重启网络栈）
-      await this.clearDNSCache();
+      // 并行执行清除操作以提升性能
+      await Promise.all([
+        this.wipeSessions(),
+        this.wipeUserDataDir(),
+        this.clearClipboard(),
+        this.clearDNSCache(),
+      ]);
     } finally {
       this.isWiping = false;
       this.waiters.forEach((resolve) => resolve());
@@ -113,30 +109,36 @@ export class PrivacyEngine {
       // 可以添加其他 partition 名称
     ];
 
-    for (const partition of sessions) {
-      try {
-        const ses = require('electron').session.fromPartition(partition);
-        await ses.clearCache();
-        await ses.clearStorageData({
-          storages: [
-            'appcache',
-            'cookies',
-            'filesystem',
-            'indexdb',
-            'localstorage',
-            'shadercache',
-            'websql',
-            'serviceworkers',
-            'cachestorage',
-          ],
-        });
-        await ses.clearAuthCache();
-        await ses.clearHostResolverCache();
-        await ses.cookies.flushStore();
-      } catch (err) {
-        // 忽略错误继续
-      }
-    }
+    // 并行清除所有 session
+    await Promise.all(
+      sessions.map(async (partition) => {
+        try {
+          const ses = require('electron').session.fromPartition(partition);
+          // 并行执行所有清除操作
+          await Promise.all([
+            ses.clearCache(),
+            ses.clearStorageData({
+              storages: [
+                'appcache',
+                'cookies',
+                'filesystem',
+                'indexdb',
+                'localstorage',
+                'shadercache',
+                'websql',
+                'serviceworkers',
+                'cachestorage',
+              ],
+            }),
+            ses.clearAuthCache(),
+            ses.clearHostResolverCache(),
+            ses.cookies.flushStore(),
+          ]);
+        } catch (err) {
+          // 忽略错误继续
+        }
+      })
+    );
   }
 
   /**
@@ -156,15 +158,18 @@ export class PrivacyEngine {
       path.join(userDataPath, 'Cookies-journal'),
     ];
 
-    for (const dir of dirsToWipe) {
-      try {
-        if (fs.existsSync(dir)) {
-          fs.rmSync(dir, { recursive: true, force: true });
+    // 并行删除所有目录
+    await Promise.all(
+      dirsToWipe.map(async (dir) => {
+        try {
+          if (fs.existsSync(dir)) {
+            await fs.promises.rm(dir, { recursive: true, force: true });
+          }
+        } catch (err) {
+          // 忽略错误继续
         }
-      } catch (err) {
-        // 忽略错误继续
-      }
-    }
+      })
+    );
   }
 
   /**

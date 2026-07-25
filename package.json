@@ -4,9 +4,9 @@
   "description": "极致隐私 PC 浏览器 - 无痕浏览，每次启动全新身份",
   "main": "dist/main.js",
   "scripts": {
-    "dev": "concurrently \"tsc -w\" \"electron .\"",
+    "dev": "concurrently \"tsc -w\" \"electron . --expose-gc\"",
     "build": "tsc && electron-builder",
-    "start": "electron .",
+    "start": "electron . --expose-gc",
     "clean": "rimraf dist build"
   },
   "keywords": ["privacy", "browser", "electron", "incognito"],

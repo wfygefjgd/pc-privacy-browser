@@ -3,9 +3,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { PrivacyEngine } from './privacy-engine';
 import { setupIPCHandlers, TabManager } from './ipc-handlers';
+import { MemoryManager } from './memory-manager';
 
-// 禁用硬件加速以避免 GPU 指纹
-app.disableHardwareAcceleration();
+// 禁用硬件加速以避免 GPU 指纹（但这会影响性能）
+// 在隐私和性能之间权衡：如果需要更好的性能，可以启用硬件加速
+// 对于大多数用户，GPU 指纹并不是主要威胁
+// app.disableHardwareAcceleration();
 
 // 禁用 DNS 预取
 app.commandLine.appendSwitch('disable-dns-prefetch');
@@ -39,8 +42,13 @@ async function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false,
       preload: path.join(__dirname, 'preload.js'),
+      // 性能优化
+      enableWebSQL: false,
+      spellcheck: false,
+      backgroundThrottling: true,
     },
     show: false,
+    backgroundColor: '#0B0E14',
   });
 
   // 加载主界面
@@ -79,10 +87,16 @@ app.whenReady().then(async () => {
   // 启动时彻底清除所有数据
   await PrivacyEngine.wipeOnLaunch();
 
+  // 启动内存管理器
+  MemoryManager.start();
+
   await createWindow();
 });
 
 app.on('window-all-closed', async () => {
+  // 停止内存管理器
+  MemoryManager.stop();
+
   // 关闭前彻底清除
   await PrivacyEngine.nuclearWipe();
   app.quit();

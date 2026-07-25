@@ -118,13 +118,39 @@ function setupWebviewListeners(webview, tabId) {
   });
 }
 
-// 更新标签信息
+// 更新标签信息（使用节流优化）
+let updateQueue = new Map();
+let updateTimeout = null;
+
 async function updateTabInfo(tabId, updates) {
-  await window.electronAPI?.invoke('tab:update', tabId, updates);
-  const tab = tabs.find(t => t.id === tabId);
-  if (tab) {
-    Object.assign(tab, updates);
+  // 合并同一标签的多次更新
+  const existing = updateQueue.get(tabId) || {};
+  updateQueue.set(tabId, { ...existing, ...updates });
+
+  // 节流：100ms 内的更新合并为一次
+  if (updateTimeout) {
+    clearTimeout(updateTimeout);
   }
+
+  updateTimeout = setTimeout(async () => {
+    const batch = Array.from(updateQueue.entries());
+    updateQueue.clear();
+
+    // 批量更新
+    await Promise.all(
+      batch.map(([id, data]) =>
+        window.electronAPI?.invoke('tab:update', id, data)
+      )
+    );
+
+    // 更新本地状态
+    batch.forEach(([id, data]) => {
+      const tab = tabs.find(t => t.id === id);
+      if (tab) {
+        Object.assign(tab, data);
+      }
+    });
+  }, 100);
 }
 
 // 切换标签
@@ -191,9 +217,11 @@ async function refreshTabs() {
   }
 }
 
-// 刷新标签列表显示
+// 刷新标签列表显示（优化版：使用 DocumentFragment）
 function refreshTabsList() {
-  tabsList.innerHTML = '';
+  // 使用 DocumentFragment 减少 DOM 操作
+  const fragment = document.createDocumentFragment();
+
   tabs.forEach(tab => {
     const item = document.createElement('div');
     item.className = 'tab-item';
@@ -227,8 +255,12 @@ function refreshTabsList() {
       closeTab(tab.id);
     });
 
-    tabsList.appendChild(item);
+    fragment.appendChild(item);
   });
+
+  // 一次性更新 DOM
+  tabsList.innerHTML = '';
+  tabsList.appendChild(fragment);
 }
 
 // 更新标签计数
@@ -424,8 +456,27 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// 定期更新导航按钮
-setInterval(updateNavButtons, 500);
+// 使用 requestIdleCallback 优化性能
+let updateNavButtonsScheduled = false;
+function scheduleNavButtonUpdate() {
+  if (updateNavButtonsScheduled) return;
+  updateNavButtonsScheduled = true;
+
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(() => {
+      updateNavButtons();
+      updateNavButtonsScheduled = false;
+    }, { timeout: 1000 });
+  } else {
+    setTimeout(() => {
+      updateNavButtons();
+      updateNavButtonsScheduled = false;
+    }, 500);
+  }
+}
+
+// 监听导航事件而不是定期轮询
+setInterval(scheduleNavButtonUpdate, 1000);
 
 // 初始化
 init();
