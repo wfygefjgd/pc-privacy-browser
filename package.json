@@ -34,6 +34,9 @@
     },
     "files": [
       "dist/**/*",
+      "index.html",
+      "renderer.js",
+      "styles.css",
       "package.json"
     ],
     "win": {
