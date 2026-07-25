@@ -62,12 +62,7 @@ export class PrivacyEngine {
 
     // 禁用持久化
     ses.setPermissionRequestHandler((webContents, permission, callback) => {
-      // 拒绝所有持久化权限
-      if (permission === 'persistent-storage') {
-        callback(false);
-        return;
-      }
-      // 其他权限也默认拒绝（需要时可以调整）
+      // 拒绝所有权限（包括持久化存储）
       callback(false);
     });
 
